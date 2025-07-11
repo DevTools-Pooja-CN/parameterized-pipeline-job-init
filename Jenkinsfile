@@ -1,39 +1,42 @@
 pipeline {
     agent any
+
     stages {
-        stage('Maven Version') {
+        stage('Checkout') {
             steps {
-                sh 'echo Print Maven Version'
+                // Checkout your code from SCM
+                checkout scm
+            }
+        }
+        stage('Print Maven Version') {
+            steps {
                 sh 'mvn -version'
             }
         }
         stage('Build') {
             steps {
-                // Build the package, skipping tests to speed up
-                sh 'mvn clean package -DskipTests=true'
-                // Archive the built jar artifact
-                archiveArtifacts 'target/hello-demo-*.jar'
+                // Build the project, skip tests to speed it up
+                sh 'mvn clean package -DskipTests'
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }
         stage('Test') {
             steps {
-                // Run tests separately
                 sh 'mvn test'
-                // Publish test results (check if TEST-*.xml matches your setup)
-                junit(testResults: 'target/surefire-reports/TEST-*.xml', keepProperties: true, keepTestNames: true)
+                junit 'target/surefire-reports/TEST-*.xml'
             }
         }
     }
+
     post {
         always {
-            echo 'Cleaning workspace...'
-            cleanWs()
+            cleanWs()  // Clean workspace regardless of build result
         }
         success {
-            echo 'Build and tests succeeded!'
+            echo 'Build succeeded!'
         }
         failure {
-            echo 'Build or tests failed!'
+            echo 'Build failed!'
         }
     }
 }
